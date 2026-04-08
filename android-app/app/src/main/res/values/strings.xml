@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">소방 AI 화재조사</string>
+    
+    <!-- 화면 제목 -->
+    <string name="title_dashboard">대시보드</string>
+    <string name="title_investigations">조사 목록</string>
+    <string name="title_investigation_detail">조사 상세</string>
+    <string name="title_camera">증거 촬영</string>
+    <string name="title_analysis">AI 분석 결과</string>
+    <string name="title_report">조사보고서</string>
+    <string name="title_chat">AI 챗봇</string>
+    
+    <!-- 버튼 -->
+    <string name="btn_new_investigation">새 조사</string>
+    <string name="btn_take_photo">촬영</string>
+    <string name="btn_analyze">AI 분석</string>
+    <string name="btn_generate_report">보고서 생성</string>
+    <string name="btn_save">저장</string>
+    <string name="btn_cancel">취소</string>
+    <string name="btn_back">뒤로</string>
+    <string name="btn_sync">동기화</string>
+    
+    <!-- 상태 -->
+    <string name="status_pending">대기</string>
+    <string name="status_in_progress">진행중</string>
+    <string name="status_analyzing">분석중</string>
+    <string name="status_reviewing">검토중</string>
+    <string name="status_completed">완료</string>
+    <string name="status_synced">동기화됨</string>
+    <string name="status_offline">오프라인</string>
+    
+    <!-- 메시지 -->
+    <string name="msg_photo_saved">사진이 저장되었습니다</string>
+    <string name="msg_analysis_complete">AI 분석이 완료되었습니다</string>
+    <string name="msg_report_generated">보고서가 생성되었습니다</string>
+    <string name="msg_sync_complete">동기화가 완료되었습니다</string>
+    <string name="msg_no_network">네트워크 연결이 없습니다. 오프라인 모드로 전환됩니다.</string>
+    
+    <!-- 에러 -->
+    <string name="error_camera">침라를 사용할 수 없습니다</string>
+    <string name="error_save">저장에 실패했습니다</string>
+    <string name="error_network">네트워크 오류가 발생했습니다</string>
+    <string name="error_server">서버 오류가 발생했습니다</string>
+    
+    <!-- 권한 -->
+    <string name="permission_camera_required">증거 촬영을 위해 침라 권한이 필요합니다</string>
+    <string name="permission_location_required">위치 정보 수집을 위해 위치 권한이 필요합니다</string>
+</resources>

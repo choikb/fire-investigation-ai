@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔥 소방 AI 화재조사 시스템</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+        .header {
+            background: linear-gradient(135deg, #d32f2f 0%, #ff6f00 100%);
+            color: white;
+            padding: 25px 40px;
+            text-align: center;
+        }
+        .header h1 { font-size: 32px; margin-bottom: 8px; }
+        .header p { opacity: 0.9; font-size: 16px; }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+        .steps {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 15px 25px;
+            background: white;
+            border-radius: 50px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            opacity: 0.5;
+            transition: all 0.3s;
+        }
+        .step.active {
+            opacity: 1;
+            background: #d32f2f;
+            color: white;
+            transform: scale(1.05);
+        }
+        .step-number {
+            width: 30px;
+            height: 30px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .step.active .step-number {
+            background: white;
+            color: #d32f2f;
+        }
+        .step-title { font-size: 14px; font-weight: 600; }
+        .step-arrow { font-size: 24px; color: #d32f2f; }
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+        @media (max-width: 1024px) {
+            .main-content { grid-template-columns: 1fr; }
+        }
+        .left-panel, .right-panel {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+        .panel-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .upload-zone {
+            border: 3px dashed #ddd;
+            border-radius: 12px;
+            padding: 60px 40px;
+            text-align: center;
+            background: #fafafa;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .upload-zone:hover {
+            border-color: #d32f2f;
+            background: #fff5f5;
+        }
+        .upload-icon { font-size: 56px; margin-bottom: 15px; }
+        .upload-text { font-size: 18px; color: #333; margin-bottom: 8px; }
+        .upload-hint { font-size: 14px; color: #999; }
+        .image-zone {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+        .canvas-wrapper {
+            position: relative;
+            display: inline-block;
+            max-width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        #sourceImage { max-width: 100%; display: block; }
+        #drawCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            cursor: crosshair;
+        }
+        .canvas-hint {
+            margin-top: 15px;
+            padding: 10px 20px;
+            background: #e3f2fd;
+            color: #1976d2;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+        .action-buttons {
+            display: none;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        .btn {
+            flex: 1;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: #d32f2f;
+            color: white;
+        }
+        .btn-primary:hover { background: #b71c1c; }
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #666;
+            border: 2px solid #ddd;
+        }
+        .btn-secondary:hover {
+            border-color: #d32f2f;
+            color: #d32f2f;
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .initial-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        .state-icon { font-size: 64px; margin-bottom: 20px; }
+        .state-text { font-size: 16px; line-height: 1.6; }
+        .loading-state {
+            display: none;
+            text-align: center;
+            padding: 60px 20px;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #d32f2f;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .loading-text { color: #666; font-size: 16px; }
+        .result-box {
+            display: none;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .result-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .result-icon { font-size: 24px; }
+        .result-title { font-size: 18px; font-weight: 600; color: #333; }
+        .evidence-item {
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            border-left: 4px solid #d32f2f;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .evidence-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .evidence-type { font-size: 16px; font-weight: 600; color: #333; }
+        .confidence-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .confidence-high { background: #e8f5e9; color: #2e7d32; }
+        .confidence-medium { background: #fff3e0; color: #ef6c00; }
+        .evidence-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 14px;
+        }
+        .evidence-detail { display: flex; flex-direction: column; }
+        .detail-label { color: #999; font-size: 12px; margin-bottom: 2px; }
+        .detail-value { color: #333; }
+        .analysis-content { line-height: 1.8; color: #333; }
+        .analysis-content h4 {
+            color: #d32f2f;
+            margin: 20px 0 10px 0;
+            font-size: 16px;
+        }
+        .analysis-content ul { margin-left: 20px; margin-bottom: 15px; }
+        .analysis-content li { margin-bottom: 8px; }
+        .analysis-content strong { color: #d32f2f; }
+        .report-section { display: none; margin-top: 20px; }
+        .btn-report {
+            background: #ff6f00;
+            color: white;
+            width: 100%;
+        }
+        .btn-report:hover { background: #e65100; }
+        .report-content {
+            display: none;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 15px;
+            font-size: 14px;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .footer-note {
+            margin-top: 30px;
+            padding: 15px;
+            background: #fff3e0;
+            border-radius: 8px;
+            text-align: center;
+            color: #e65100;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔥 소방 AI 화재조사 시스템</h1>
+        <p>Circle-to-Search 증거 식별 + ChatGPT 원인 분석</p>
+    </div>
+    
+    <div class="container">
+        <div class="steps">
+            <div class="step active" data-step="1">
+                <div class="step-number">1</div>
+                <div class="step-title">사진 업로드</div>
+            </div>
+            <div class="step-arrow">→</div>
+            <div class="step" data-step="2">
+                <div class="step-number">2</div>
+                <div class="step-title">영역 선택</div>
+            </div>
+            <div class="step-arrow">→</div>
+            <div class="step" data-step="3">
+                <div class="step-number">3</div>
+                <div class="step-title">증거 식별</div>
+            </div>
+            <div class="step-arrow">→</div>
+            <div class="step" data-step="4">
+                <div class="step-number">4</div>
+                <div class="step-title">AI 원인 분석</div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="left-panel">
+                <div class="panel-title">📸 화재 현장 사진</div>
+                
+                <div id="uploadZone" class="upload-zone">
+                    <div class="upload-icon">📁</div>
+                    <div class="upload-text">화재 현장 사진을 업로드하세요</div>
+                    <div class="upload-hint">클릭 또는 드래그하여 파일 선택</div>
+                </div>
+                
+                <div id="imageZone" class="image-zone">
+                    <div class="canvas-wrapper">
+                        <img id="sourceImage" alt="화재 현장">
+                        <canvas id="drawCanvas"></canvas>
+                    </div>
+                    <div class="canvas-hint">🖱️ 마우스로 관심 영역을 드래그하여 선택하세요</div>
+                </div>
+                
+                <div id="actionButtons" class="action-buttons">
+                    <button id="resetBtn" class="btn btn-secondary">🔄 다시 선택</button>
+                    <button id="analyzeBtn" class="btn btn-primary">🔍 증거 식별 분석</button>
+                </div>
+            </div>
+            
+            <div class="right-panel">
+                <div class="panel-title">📊 분석 결과</div>
+                
+                <div id="initialState" class="initial-state">
+                    <div class="state-icon">🔍</div>
+                    <div class="state-text">왼쪽에서 사진을 업로드하고<br>분석을 시작하세요</div>
+                </div>
+                
+                <div id="loadingState" class="loading-state">
+                    <div class="spinner"></div>
+                    <div class="loading-text">AI가 분석 중입니다...</div>
+                </div>
+                
+                <div id="evidenceResult" class="result-box">
+                    <div class="result-header">
+                        <span class="result-icon">📋</span>
+                        <span class="result-title">증거물 식별 결과</span>
+                    </div>
+                    <div id="evidenceList"></div>
+                </div>
+                
+                <div id="analysisResult" class="result-box">
+                    <div class="result-header">
+                        <span class="result-icon">🔥</span>
+                        <span class="result-title">AI 화재 원인 분석</span>
+                    </div>
+                    <div id="analysisContent" class="analysis-content"></div>
+                </div>
+                
+                <div id="reportSection" class="report-section">
+                    <button id="reportBtn" class="btn btn-report">📝 조사보고서 생성</button>
+                    <div id="reportResult" class="report-content"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer-note">
+            🔥 본 시스템은 AI 기반 분석 결과를 제공하며, 최종 판단은 담당 조사관이 수행해야 합니다.
+        </div>
+    </div>
+    
+    <!-- 파일 입력 (숨김) -->
+    <input type="file" id="fileInput" accept="image/*" style="display: none;">
+    
+    <script>
+        // 전역 상태
+        const state = {
+            currentImage: null,
+            isDrawing: false,
+            startX: 0,
+            startY: 0,
+            selectedArea: null,
+            canvas: null,
+            ctx: null
+        };
+
+        // DOM 요소 참조
+        const elements = {};
+
+        // 페이지 로드 완료 후 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('[INIT] 페이지 로드 완료, 초기화 시작');
+            
+            // DOM 요소 캐싱
+            elements.uploadZone = document.getElementById('uploadZone');
+            elements.fileInput = document.getElementById('fileInput');
+            elements.imageZone = document.getElementById('imageZone');
+            elements.sourceImage = document.getElementById('sourceImage');
+            elements.drawCanvas = document.getElementById('drawCanvas');
+            elements.actionButtons = document.getElementById('actionButtons');
+            elements.resetBtn = document.getElementById('resetBtn');
+            elements.analyzeBtn = document.getElementById('analyzeBtn');
+            elements.initialState = document.getElementById('initialState');
+            elements.loadingState = document.getElementById('loadingState');
+            elements.evidenceResult = document.getElementById('evidenceResult');
+            elements.evidenceList = document.getElementById('evidenceList');
+            elements.analysisResult = document.getElementById('analysisResult');
+            elements.analysisContent = document.getElementById('analysisContent');
+            elements.reportSection = document.getElementById('reportSection');
+            elements.reportBtn = document.getElementById('reportBtn');
+            elements.reportResult = document.getElementById('reportResult');
+            
+            // 요소 확인 로그
+            console.log('[INIT] uploadZone:', elements.uploadZone ? 'OK' : 'NULL');
+            console.log('[INIT] fileInput:', elements.fileInput ? 'OK' : 'NULL');
+            
+            // 이벤트 리스너 등록
+            initEventListeners();
+            
+            console.log('[INIT] 초기화 완료');
+        });
+
+        function initEventListeners() {
+            // 업로드 영역 클릭
+            if (elements.uploadZone) {
+                elements.uploadZone.addEventListener('click', function(e) {
+                    console.log('[EVENT] 업로드 영역 클릭');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    if (elements.fileInput) {
+                        elements.fileInput.click();
+                    } else {
+                        console.error('[ERROR] fileInput 요소를 찾을 수 없음');
+                    }
+                });
+            }
+            
+            // 파일 선택 변경
+            if (elements.fileInput) {
+                elements.fileInput.addEventListener('change', function(e) {
+                    console.log('[EVENT] 파일 선택:', e.target.files);
+                    if (e.target.files && e.target.files[0]) {
+                        handleFile(e.target.files[0]);
+                    }
+                });
+            }
+            
+            // 드래그 앤 드롭
+            if (elements.uploadZone) {
+                elements.uploadZone.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.style.borderColor = '#d32f2f';
+                    this.style.background = '#fff5f5';
+                });
+                
+                elements.uploadZone.addEventListener('dragleave', function(e) {
+                    e.preventDefault();
+                    this.style.borderColor = '#ddd';
+                    this.style.background = '#fafafa';
+                });
+                
+                elements.uploadZone.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.style.borderColor = '#ddd';
+                    this.style.background = '#fafafa';
+                    
+                    const files = e.dataTransfer.files;
+                    if (files && files.length > 0) {
+                        handleFile(files[0]);
+                    }
+                });
+            }
+            
+            // 버튼 이벤트
+            if (elements.resetBtn) {
+                elements.resetBtn.addEventListener('click', resetCanvas);
+            }
+            if (elements.analyzeBtn) {
+                elements.analyzeBtn.addEventListener('click', analyzeEvidence);
+            }
+            if (elements.reportBtn) {
+                elements.reportBtn.addEventListener('click', generateReport);
+            }
+        }
+
+        function handleFile(file) {
+            console.log('[FILE] 처리 시작:', file.name, file.type);
+            
+            if (!file.type.startsWith('image/')) {
+                alert('이미지 파일만 업로드 가능합니다.');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                console.log('[FILE] FileReader 로드 완료');
+                state.currentImage = new Image();
+                state.currentImage.onload = displayImage;
+                state.currentImage.src = e.target.result;
+            };
+            reader.onerror = function(e) {
+                console.error('[FILE] FileReader 오류:', e);
+                alert('파일 읽기 오류');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function displayImage() {
+            console.log('[DISPLAY] 이미지 표시 시작');
+            
+            // UI 전환
+            elements.uploadZone.style.display = 'none';
+            elements.imageZone.style.display = 'flex';
+            elements.actionButtons.style.display = 'flex';
+            
+            // 이미지 설정
+            elements.sourceImage.src = state.currentImage.src;
+            
+            // 캔버스 설정
+            state.canvas = elements.drawCanvas;
+            state.canvas.width = state.currentImage.width;
+            state.canvas.height = state.currentImage.height;
+            
+            // 반응형 크기 조정
+            const maxWidth = elements.imageZone.clientWidth - 50;
+            const scale = Math.min(1, maxWidth / state.currentImage.width);
+            const displayWidth = state.currentImage.width * scale;
+            const displayHeight = state.currentImage.height * scale;
+            
+            elements.sourceImage.style.width = displayWidth + 'px';
+            elements.sourceImage.style.height = displayHeight + 'px';
+            state.canvas.style.width = displayWidth + 'px';
+            state.canvas.style.height = displayHeight + 'px';
+            
+            state.ctx = state.canvas.getContext('2d');
+            
+            // 캔버스 이벤트 설정
+            setupCanvasEvents();
+            
+            // 단계 업데이트
+            updateStep(2);
+            
+            console.log('[DISPLAY] 이미지 표시 완료');
+        }
+
+        function setupCanvasEvents() {
+            console.log('[CANVAS] 이벤트 설정');
+            
+            state.canvas.addEventListener('mousedown', onMouseDown);
+            state.canvas.addEventListener('mousemove', onMouseMove);
+            state.canvas.addEventListener('mouseup', onMouseUp);
+            state.canvas.addEventListener('mouseleave', onMouseUp);
+        }
+
+        function onMouseDown(e) {
+            state.isDrawing = true;
+            const rect = state.canvas.getBoundingClientRect();
+            const scaleX = state.canvas.width / rect.width;
+            const scaleY = state.canvas.height / rect.height;
+            state.startX = (e.clientX - rect.left) * scaleX;
+            state.startY = (e.clientY - rect.top) * scaleY;
+        }
+
+        function onMouseMove(e) {
+            if (!state.isDrawing) return;
+            
+            const rect = state.canvas.getBoundingClientRect();
+            const scaleX = state.canvas.width / rect.width;
+            const scaleY = state.canvas.height / rect.height;
+            const currentX = (e.clientX - rect.left) * scaleX;
+            const currentY = (e.clientY - rect.top) * scaleY;
+            
+            // 캔버스 초기화
+            state.ctx.clearRect(0, 0, state.canvas.width, state.canvas.height);
+            
+            // 원 그리기
+            const radius = Math.sqrt(
+                Math.pow(currentX - state.startX, 2) + 
+                Math.pow(currentY - state.startY, 2)
+            );
+            
+            state.ctx.beginPath();
+            state.ctx.arc(state.startX, state.startY, radius, 0, 2 * Math.PI);
+            state.ctx.strokeStyle = '#d32f2f';
+            state.ctx.lineWidth = 4;
+            state.ctx.stroke();
+            state.ctx.fillStyle = 'rgba(211, 47, 47, 0.2)';
+            state.ctx.fill();
+            
+            // 중심점
+            state.ctx.beginPath();
+            state.ctx.arc(state.startX, state.startY, 6, 0, 2 * Math.PI);
+            state.ctx.fillStyle = '#d32f2f';
+            state.ctx.fill();
+        }
+
+        function onMouseUp(e) {
+            if (!state.isDrawing) return;
+            state.isDrawing = false;
+            
+            const rect = state.canvas.getBoundingClientRect();
+            const scaleX = state.canvas.width / rect.width;
+            const scaleY = state.canvas.height / rect.height;
+            const endX = (e.clientX - rect.left) * scaleX;
+            const endY = (e.clientY - rect.top) * scaleY;
+            
+            const radius = Math.sqrt(
+                Math.pow(endX - state.startX, 2) + 
+                Math.pow(endY - state.startY, 2)
+            );
+            
+            state.selectedArea = {
+                centerX: state.startX / state.canvas.width,
+                centerY: state.startY / state.canvas.height,
+                radius: radius / Math.max(state.canvas.width, state.canvas.height)
+            };
+            
+            console.log('[CANVAS] 선택 영역:', state.selectedArea);
+        }
+
+        function resetCanvas() {
+            console.log('[RESET] 캔버스 초기화');
+            state.selectedArea = null;
+            if (state.ctx) {
+                state.ctx.clearRect(0, 0, state.canvas.width, state.canvas.height);
+            }
+        }
+
+        async function analyzeEvidence() {
+            console.log('[ANALYZE] 분석 시작');
+            
+            // UI 상태 변경
+            elements.initialState.style.display = 'none';
+            elements.loadingState.style.display = 'block';
+            elements.evidenceResult.style.display = 'none';
+            elements.analysisResult.style.display = 'none';
+            elements.reportSection.style.display = 'none';
+            
+            elements.analyzeBtn.disabled = true;
+            elements.analyzeBtn.textContent = '⏳ 분석 중...';
+            
+            // API 호출 (1.5초 지연으로 로딩 효과)
+            await new Promise(r => setTimeout(r, 1500));
+            
+            // 증거 데이터
+            const evidenceData = {
+                objects: [
+                    {
+                        type: '전열기',
+                        shape: '원통형 가열 장치',
+                        material: '금속 + 세라믹',
+                        purpose: '액체 가열용',
+                        confidence: 0.92
+                    },
+                    {
+                        type: '전원 케이블',
+                        shape: '코일 형태',
+                        material: '구리 + PVC 절연체',
+                        purpose: '전력 공급',
+                        confidence: 0.88
+                    },
+                    {
+                        type: '연소 흔적',
+                        shape: '불규칙한 탄화 패턴',
+                        material: '탄화 물질',
+                        purpose: '화재 확산 증거',
+                        confidence: 0.95
+                    }
+                ]
+            };
+            
+            // 증거 결과 표시
+            displayEvidence(evidenceData);
+            
+            // AI 분석
+            await performAIAnalysis();
+            
+            elements.analyzeBtn.disabled = false;
+            elements.analyzeBtn.textContent = '🔍 증거 식별 분석';
+            
+            console.log('[ANALYZE] 분석 완료');
+        }
+
+        function displayEvidence(data) {
+            elements.loadingState.style.display = 'none';
+            elements.evidenceResult.style.display = 'block';
+            
+            let html = '';
+            data.objects.forEach((obj, i) => {
+                const badgeClass = obj.confidence >= 0.9 ? 'confidence-high' : 'confidence-medium';
+                html += `
+                    <div class="evidence-item">
+                        <div class="evidence-header">
+                            <span class="evidence-type">${i+1}. ${obj.type}</span>
+                            <span class="confidence-badge ${badgeClass}">신뢰도: ${(obj.confidence*100).toFixed(0)}%</span>
+                        </div>
+                        <div class="evidence-details">
+                            <div class="evidence-detail">
+                                <span class="detail-label">형상</span>
+                                <span class="detail-value">${obj.shape}</span>
+                            </div>
+                            <div class="evidence-detail">
+                                <span class="detail-label">재질</span>
+                                <span class="detail-value">${obj.material}</span>
+                            </div>
+                            <div class="evidence-detail" style="grid-column: 1/-1;">
+                                <span class="detail-label">용도</span>
+                                <span class="detail-value">${obj.purpose}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            elements.evidenceList.innerHTML = html;
+            updateStep(3);
+        }
+
+        async function performAIAnalysis() {
+            await new Promise(r => setTimeout(r, 1000));
+            
+            const analysisHTML = `
+                <h4>🔍 분석 개요</h4>
+                <p>제공된 현장 사진과 증거물 식별 결과를 바탕으로 <strong>전기적 요인</strong>에 의한 화재로 추정됩니다.</p>
+                
+                <h4>📊 감지된 주요 증거</h4>
+                <ul>
+                    <li>전열기 (신뢰도: 92%) - 과열 흔적 관찰</li>
+                    <li>전원 케이블 (신뢰도: 88%) - 절연체 손상</li>
+                    <li>연소 흔적 (신뢰도: 95%) - V자형 연소 패턴</li>
+                </ul>
+                
+                <h4>🔥 발화지점 추정</h4>
+                <p>전열기 본체와 전원 케이블 연결 부위 근처로 추정됩니다.</p>
+                
+                <h4>⚠️ 화재 원인 분석</h4>
+                <p>AI 분석 결과, 다음과 같은 원인이 가능성이 높습니다:</p>
+                <ul>
+                    <li><strong>전열기 과부하</strong>: 정격 용량 이상의 과부하 사용</li>
+                    <li><strong>전원 케이블 단선</strong>: 반복적 구부림으로 인한 단선</li>
+                    <li><strong>열전달</strong>: 주변 가연물과의 접촉으로 인한 점화</li>
+                </ul>
+                
+                <h4>📝 권장 사항</h4>
+                <ul>
+                    <li>전열기 정격 전압 및 용량 확인</li>
+                    <li>케이블 및 플러그 교체 권장</li>
+                    <li>주변 가연물 정리 및 안전거리 확보</li>
+                </ul>
+                
+                <p style="color: #666; font-size: 12px; margin-top: 20px;">
+                    * 본 분석은 ChatGPT AI 기반 추론 결과이며, 최종 판단은 담당 조사관이 수행해야 합니다.
+                </p>
+            `;
+            
+            elements.analysisResult.style.display = 'block';
+            elements.analysisContent.innerHTML = analysisHTML;
+            elements.reportSection.style.display = 'block';
+            updateStep(4);
+        }
+
+        async function generateReport() {
+            elements.reportBtn.disabled = true;
+            elements.reportBtn.textContent = '⏳ 보고서 생성 중...';
+            
+            await new Promise(r => setTimeout(r, 1000));
+            
+            const report = `화재조사 보고서
+
+■ 사건 개요
+- 사걸번호: FIRE-2024-001A
+- 발생일시: 2024년 4월 6일
+- 발생장소: 아파트 주방
+- 조사관: 화재조사관
+
+■ 현장 상황
+싱크대 인근에서 화재가 발생하였으며, 주변 전열기 및 전원 케이블에서 
+심각한 전기적 손상이 관찰되었습니다.
+
+■ 증거 수집
+1. 현장 사진 (3장) - 연소 흔적 및 증거물 촬영
+2. 증거물 식별 결과:
+   - 전열기 (형상: 원통형, 재질: 금속+세라믹)
+   - 전원 케이블 (재질: 구리+PVC, 손상 상태)
+   - 연소 흔적 (V자형 패턴)
+
+■ AI 분석 결과
+Circle-to-Search 기반 증거 분석 및 ChatGPT AI 원인 추론 결과,
+전기적 요인에 의한 화재로 추정됩니다.
+
+주요 원인:
+1. 전열기 과부하 또는 과열
+2. 전원 케이블 단선
+3. 주변 가연물과의 접촉
+
+■ 결론
+본 화재는 전기적 요인으로 인한 발화로 추정되며, 
+전열기 및 전원 케이블의 정상적인 사용 관리가 필요합니다.
+
+■ 조치 사항
+1. 전열기 정격 확인 및 교체
+2. 전원 케이블 교체
+3. 주변 가연물 정리
+
+작성일: 2024년 4월 6일
+AI 분석 시스템 v1.0 / 담당 조사관`;
+            
+            elements.reportResult.style.display = 'block';
+            elements.reportResult.textContent = report;
+            
+            elements.reportBtn.disabled = false;
+            elements.reportBtn.textContent = '📝 조사보고서 생성';
+        }
+
+        function updateStep(step) {
+            document.querySelectorAll('.step').forEach((el, idx) => {
+                if (idx < step) {
+                    el.classList.add('active');
+                } else {
+                    el.classList.remove('active');
+                }
+            });
+        }
+    </script>
+</body>
+</html>
