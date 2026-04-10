@@ -261,11 +261,55 @@ function stopDrawing(e) {
 }
 
 function resetSelection() {
-    console.log('resetSelection 호출됨');
+    console.log('resetSelection 호출됨 - 전체 초기화');
+    
+    // 상태 초기화
     state.selectedArea = null;
+    state.currentImage = null;
+    state.evidenceData = null;
+    
+    // 캔버스 초기화
     if (state.ctx && state.canvas) {
         state.ctx.clearRect(0, 0, state.canvas.width, state.canvas.height);
     }
+    
+    // UI 초기화 - 업로드 화면으로 돌아가기
+    if (elements.uploadZone) {
+        elements.uploadZone.style.display = 'flex';
+    }
+    if (elements.imageZone) {
+        elements.imageZone.style.display = 'none';
+    }
+    if (elements.actionButtons) {
+        elements.actionButtons.style.display = 'none';
+    }
+    if (elements.sourceImage) {
+        elements.sourceImage.src = '';
+    }
+    
+    // 결과 패널 초기화
+    if (elements.initialState) {
+        elements.initialState.style.display = 'block';
+    }
+    if (elements.loadingState) {
+        elements.loadingState.style.display = 'none';
+    }
+    if (elements.evidenceResult) {
+        elements.evidenceResult.style.display = 'none';
+    }
+    if (elements.analysisResult) {
+        elements.analysisResult.style.display = 'none';
+    }
+    if (elements.reportSection) {
+        elements.reportSection.style.display = 'none';
+    }
+    
+    // 파일 input 초기화
+    if (elements.fileInput) {
+        elements.fileInput.value = '';
+    }
+    
+    console.log('전체 초기화 완료');
 }
 
 async function analyzeEvidence() {
