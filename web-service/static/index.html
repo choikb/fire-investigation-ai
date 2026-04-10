@@ -480,7 +480,7 @@
             
             // 버튼 이벤트
             if (elements.resetBtn) {
-                elements.resetBtn.addEventListener('click', resetCanvas);
+                elements.resetBtn.addEventListener('click', resetAll);
             }
             if (elements.analyzeBtn) {
                 elements.analyzeBtn.addEventListener('click', analyzeEvidence);
@@ -631,6 +631,38 @@
             if (state.ctx) {
                 state.ctx.clearRect(0, 0, state.canvas.width, state.canvas.height);
             }
+        }
+
+        function resetAll() {
+            console.log('[RESET] 전체 초기화');
+            // 상태 초기화
+            state.selectedArea = null;
+            state.currentImage = null;
+            
+            // 캔버스 초기화
+            if (state.ctx) {
+                state.ctx.clearRect(0, 0, state.canvas.width, state.canvas.height);
+            }
+            
+            // UI 초기화 - 업로드 영역 다시 보이기
+            elements.uploadZone.style.display = 'flex';
+            elements.imageZone.style.display = 'none';
+            elements.actionButtons.style.display = 'none';
+            
+            // 결과 패널 초기화
+            elements.initialState.style.display = 'block';
+            elements.loadingState.style.display = 'none';
+            elements.evidenceResult.style.display = 'none';
+            elements.analysisResult.style.display = 'none';
+            elements.reportSection.style.display = 'none';
+            
+            // 파일 input 초기화
+            elements.fileInput.value = '';
+            
+            // 단계 표시 초기화
+            updateStep(1);
+            
+            console.log('[RESET] 전체 초기화 완료');
         }
 
         async function analyzeEvidence() {
