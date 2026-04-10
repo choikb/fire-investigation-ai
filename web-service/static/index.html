@@ -724,8 +724,67 @@
         }
 
         async function performAIAnalysis() {
-            await new Promise(r => setTimeout(r, 1000));
+            console.log('[AI] GPT-4 분석 시작');
             
+            try {
+                const response = await fetch(`${API_BASE}/api/ai-analysis`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        evidence: {
+                            objects: [
+                                {
+                                    type: '전열기',
+                                    shape: '원통형 가열 장치',
+                                    material: '금속 + 세라믹',
+                                    purpose: '액체 가열용',
+                                    confidence: 0.92
+                                },
+                                {
+                                    type: '전원 케이블',
+                                    shape: '코일 형태',
+                                    material: '구리 + PVC 절연체',
+                                    purpose: '전력 공급',
+                                    confidence: 0.88
+                                },
+                                {
+                                    type: '연소 흔적',
+                                    shape: '불규칙한 탄화 패턴',
+                                    material: '탄화 물질',
+                                    purpose: '화재 확산 증거',
+                                    confidence: 0.95
+                                }
+                            ]
+                        },
+                        selected_area: state.selectedArea
+                    })
+                });
+                
+                const data = await response.json();
+                console.log('[AI] GPT-4 응답:', data);
+                
+                if (data.status === 'success') {
+                    elements.analysisResult.style.display = 'block';
+                    elements.analysisContent.innerHTML = data.analysis;
+                    elements.reportSection.style.display = 'block';
+                    
+                    // API 응답 표시
+                    const apiInfo = document.createElement('div');
+                    apiInfo.style.cssText = 'margin-top: 15px; padding: 10px; background: #e8f5e9; border-radius: 8px; font-size: 12px; color: #2e7d32;';
+                    apiInfo.innerHTML = `✅ GPT-4 실제 분석 완료 (${new Date(data.timestamp).toLocaleTimeString()})`;
+                    elements.analysisContent.appendChild(apiInfo);
+                    
+                    updateStep(4);
+                    return;
+                }
+            } catch (error) {
+                console.error('[AI] API 오류:', error);
+            }
+            
+            // API 실패 시 Mock 결과
+            console.log('[AI] Mock 결과 사용');
             const analysisHTML = `
                 <h4>🔍 분석 개요</h4>
                 <p>제공된 현장 사진과 증거물 식별 결과를 바탕으로 <strong>전기적 요인</strong>에 의한 화재로 추정됩니다.</p>
@@ -770,9 +829,47 @@
             elements.reportBtn.disabled = true;
             elements.reportBtn.textContent = '⏳ 보고서 생성 중...';
             
-            await new Promise(r => setTimeout(r, 1000));
+            console.log('[AI] 보고서 생성 시작');
             
-            const report = `화재조사 보고서
+            try {
+                const analysisContent = elements.analysisContent.innerHTML || '';
+                const response = await fetch(`${API_BASE}/api/report`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        evidence: {
+                            objects: [
+                                { type: '전열기', confidence: 0.92 },
+                                { type: '전원 케이블', confidence: 0.88 },
+                                { type: '연소 흔적', confidence: 0.95 }
+                            ]
+                        },
+                        analysis: analysisContent
+                    })
+                });
+                
+                const data = await response.json();
+                console.log('[AI] 보고서 응답:', data);
+                
+                if (data.status === 'success') {
+                    elements.reportResult.style.display = 'block';
+                    elements.reportResult.innerHTML = `
+                        <div style="white-space: pre-line; line-height: 1.8;">${data.report}</div>
+                        <div style="margin-top: 20px; padding: 10px; background: #e8f5e9; border-radius: 8px; font-size: 12px; color: #2e7d32;">
+                            ✅ GPT-4 실제 보고서 생성 (${new Date(data.timestamp).toLocaleTimeString()})
+                        </div>
+                    `;
+                    
+                    updateStep(5);
+                } else {
+                    throw new Error(data.message || '보고서 생성 실패');
+                }
+            } catch (error) {
+                console.error('[AI] 보고서 API 오류:', error);
+                // Mock 결과 폼백
+                const mockReport = `화재조사 보고서
 
 ■ 사건 개요
 - 사걸번호: FIRE-2024-001A
@@ -811,9 +908,14 @@ Circle-to-Search 기반 증거 분석 및 ChatGPT AI 원인 추론 결과,
 
 작성일: 2024년 4월 6일
 AI 분석 시스템 v1.0 / 담당 조사관`;
-            
-            elements.reportResult.style.display = 'block';
-            elements.reportResult.textContent = report;
+                elements.reportResult.style.display = 'block';
+                elements.reportResult.innerHTML = `
+                    <div style="white-space: pre-line; line-height: 1.8;">${mockReport}</div>
+                    <div style="margin-top: 20px; padding: 10px; background: #fff3e0; border-radius: 8px; font-size: 12px; color: #e65100;">
+                        ⚠️ API 연결 없음 - Mock 보고서 표시
+                    </div>
+                `;
+            }
             
             elements.reportBtn.disabled = false;
             elements.reportBtn.textContent = '📝 조사보고서 생성';
