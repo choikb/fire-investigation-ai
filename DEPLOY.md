@@ -1,210 +1,245 @@
-# 🚀 배포 가이드
+# 🚀 Cafe24 배포 가이드
 
-## Cafe24 서버 배포 절차
+## 📋 사전 준비사항
 
-### 1. Git 저장소 연결
+### 도메인
+- **도메인:** `kfire.kbcosmos.com`
 
-```bash
-# 로컬에서 원격 저장소 추가
-git remote add origin https://github.com/your-org/fire-investigation-ai.git
-git push -u origin main
-```
-
-### 2. Cafe24 서버 접속
+### 서버 접속 정보 (사용자가 제공)
+다음 정보를 서버에서 확인해주세요:
 
 ```bash
-# SSH로 서버 접속
-ssh cafe24-user@your-server.cafe24.com
+# 1. OS 확인
+cat /etc/os-release
 
-# 프로젝트 디렉토리 생성
-mkdir -p ~/fire-ai
-cd ~/fire-ai
+# 2. Python 버전 확인
+python3 --version
 
-# Git 클론
-git clone https://github.com/your-org/fire-investigation-ai.git .
+# 3. nginx 설치 여부
+nginx -v
+
+# 4. 포트 확인
+sudo ss -tlnp | grep -E ':(80|443|3000)'
+
+# 5. 방화벽 상태
+sudo ufw status || sudo iptables -L -n | head -20
 ```
 
-### 3. Python 환경 설정
+---
+
+## 🔧 수동 배포 절차
+
+### 1. 서버 접속
+
+```bash
+ssh root@cafe24-server-ip
+# 또는
+ssh user@cafe24-server-ip
+```
+
+### 2. 시스템 업데이트
+
+```bash
+sudo apt-get update
+sudo apt-get upgrade -y
+```
+
+### 3. 필요 패키지 설치
+
+```bash
+sudo apt-get install -y python3-venv python3-pip nginx git curl
+```
+
+### 4. 프로젝트 클론
+
+```bash
+cd /var/www
+sudo mkdir -p kfire.kbcosmos.com
+cd kfire.kbcosmos.com
+
+# GitHub에서 클론
+sudo git clone https://github.com/choikb/fire-investigation-ai.git .
+```
+
+### 5. 가상환경 설정
 
 ```bash
 cd web-service
-
-# 가상환경 생성
-python3 -m venv venv
+sudo python3 -m venv venv
 source venv/bin/activate
-
-# 의존성 설치
 pip install -r requirements.txt
+deactivate
 ```
 
-### 4. 서비스 실행 (기본)
+### 6. 환경변수 설정
 
 ```bash
-# 포트 3000으로 실행
-python main.py 3000
+cd /var/www/kfire.kbcosmos.com
+sudo cp .env.example .env
+sudo nano .env
 ```
 
-### 5. systemd 서비스 등록 (권장)
+`.env` 파일 내용:
+```
+OPENAI_API_KEY=sk-proj-your_actual_key_here
+HOST=0.0.0.0
+PORT=3000
+DEBUG=false
+```
+
+### 7. 서비스 실행 (임시)
 
 ```bash
-sudo nano /etc/systemd/system/fire-ai.service
+cd /var/www/kfire.kbcosmos.com/web-service
+source venv/bin/activate
+python main.py
 ```
 
-```ini
-[Unit]
-Description=Fire Investigation AI Service
-After=network.target
+브라우저에서 `http://서버IP:3000` 접속 테스트
 
-[Service]
-Type=simple
-User=cafe24-user
-WorkingDirectory=/home/cafe24-user/fire-ai/web-service
-Environment=PATH=/home/cafe24-user/fire-ai/web-service/venv/bin
-ExecStart=/home/cafe24-user/fire-ai/web-service/venv/bin/python main.py 8080
-Restart=always
-RestartSec=10
+---
 
-[Install]
-WantedBy=multi-user.target
-```
+## 🔒 SSL 인증서 발급 (Let's Encrypt)
+
+### 1. Certbot 설치
 
 ```bash
-# 서비스 시작
+sudo apt-get install -y certbot python3-certbot-nginx
+```
+
+### 2. nginx 설정 먼저 적용
+
+```bash
+sudo cp /var/www/kfire.kbcosmos.com/deploy/nginx/kfire.kbcosmos.com.conf /etc/nginx/sites-available/
+sudo ln -sf /etc/nginx/sites-available/kfire.kbcosmos.com.conf /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t
+sudo systemctl restart nginx
+```
+
+### 3. SSL 인증서 발급
+
+```bash
+sudo certbot --nginx -d kfire.kbcosmos.com
+```
+
+- 이메일 입력
+- 약관 동의 (Y)
+- 뉴스레터 (N)
+- 리다이렉트 선택 (2: 모든 HTTP를 HTTPS로)
+
+### 4. 인증서 자동 갱신 확인
+
+```bash
+sudo certbot renew --dry-run
+```
+
+---
+
+## 🔄 systemd 서비스 등록 (권장)
+
+### 1. 서비스 파일 생성
+
+```bash
+sudo cp /var/www/kfire.kbcosmos.com/deploy/systemd/fire-ai.service /etc/systemd/system/
+```
+
+### 2. 서비스 활성화 및 시작
+
+```bash
 sudo systemctl daemon-reload
 sudo systemctl enable fire-ai
 sudo systemctl start fire-ai
+```
 
-# 상태 확인
+### 3. 상태 확인
+
+```bash
 sudo systemctl status fire-ai
 sudo journalctl -u fire-ai -f
 ```
 
-### 6. nginx 리버스 프록시 (선택)
+---
+
+## 🐳 Docker 배포 (선택)
+
+### Docker 설치
 
 ```bash
-sudo nano /etc/nginx/conf.d/fire-ai.conf
+sudo apt-get install -y docker.io docker-compose
+sudo usermod -aG docker $USER
 ```
 
-```nginx
-server {
-    listen 80;
-    server_name fire-ai.your-domain.com;
+### 실행
 
-    location / {
-        proxy_pass http://127.0.0.1:8080;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-}
+```bash
+cd /var/www/kfire.kbcosmos.com
+docker-compose up -d
 ```
+
+---
+
+## 🌐 최종 접속
+
+- **HTTP:** http://kfire.kbcosmos.com
+- **HTTPS:** https://kfire.kbcosmos.com
+
+---
+
+## 🚨 문제 해결
+
+### 1. 서비스 시작 실패
+
+```bash
+# 로그 확인
+sudo journalctl -u fire-ai -n 50
+
+# 포트 확인
+sudo netstat -tlnp | grep 3000
+```
+
+### 2. nginx 오류
 
 ```bash
 sudo nginx -t
-sudo systemctl reload nginx
+sudo systemctl status nginx
+```
+
+### 3. 권한 문제
+
+```bash
+sudo chown -R www-data:www-data /var/www/kfire.kbcosmos.com
+```
+
+### 4. 방화벽 설정
+
+```bash
+# Ubuntu UFW
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw allow 3000/tcp
+
+# CentOS/RHEL
+sudo firewall-cmd --permanent --add-port=80/tcp
+sudo firewall-cmd --permanent --add-port=443/tcp
+sudo firewall-cmd --permanent --add-port=3000/tcp
+sudo firewall-cmd --reload
 ```
 
 ---
 
-## 환경 변수 설정
+## 📁 배포 파일 구조
 
-`.env` 파일 생성:
-
-```bash
-cd web-service
-nano .env
 ```
-
-```env
-# 서버 설정
-HOST=0.0.0.0
-PORT=8080
-DEBUG=false
-
-# OpenAI API (실제 배포 시)
-OPENAI_API_KEY=your-api-key-here
-
-# 데이터베이스 (향후 연동)
-# DATABASE_URL=postgresql://user:pass@localhost/fireai
-```
-
----
-
-## 업데이트 절차
-
-```bash
-cd ~/fire-ai
-git pull origin main
-
-# 가상환경 활성화
-source web-service/venv/bin/activate
-
-# 의존성 업데이트 (필요 시)
-pip install -r web-service/requirements.txt --upgrade
-
-# 서비스 재시작
-sudo systemctl restart fire-ai
-```
-
----
-
-## 트러블슈팅
-
-### 1. 포트 충돌
-
-```bash
-# 포트 사용 현황 확인
-netstat -tlnp | grep 8080
-
-# 프로세스 종료
-kill -9 <PID>
-```
-
-### 2. 권한 문제
-
-```bash
-# 소유권 변경
-sudo chown -R cafe24-user:cafe24-user ~/fire-ai
-
-# 실행 권한 확인
-chmod +x web-service/main.py
-```
-
-### 3. 로그 확인
-
-```bash
-# 실시간 로그
-sudo journalctl -u fire-ai -f
-
-# 최근 100줄
-sudo journalctl -u fire-ai -n 100
-```
-
----
-
-## 백업 및 복구
-
-### 백업
-
-```bash
-# 소스 코드 백업
-cd ~
-tar -czvf fire-ai-backup-$(date +%Y%m%d).tar.gz fire-ai/
-
-# 데이터베이스 백업 (연동 시)
-# pg_dump fireai > backup.sql
-```
-
-### 복구
-
-```bash
-# 압축 해제
-tar -xzvf fire-ai-backup-20240406.tar.gz
-
-# 서비스 재시작
-sudo systemctl restart fire-ai
+/var/www/kfire.kbcosmos.com/
+├── web-service/
+│   ├── main.py
+│   ├── static/
+│   ├── templates/
+│   └── venv/
+├── .env
+├── requirements.txt
+└── deploy/
+    ├── systemd/
+    └── nginx/
 ```
