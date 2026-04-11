@@ -81,3 +81,6 @@ htmlcov/
 
 # Documentation builds
 docs/_build/
+models/*.pt
+datasets/
+yolo-research/

@@ -1,10 +1,10 @@
 """
 소방 AI 화재조사 시스템 - 웹 서비스
-FastAPI + OpenAI GPT-4 연동
+FastAPI + OpenAI GPT-4 + YOLOv8 연동
 """
 import os
 import json
-from typing import Optional
+from typing import Optional, List, Dict
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -14,6 +14,14 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from openai import OpenAI
+
+# YOLO 모델 임포트
+try:
+    from yolo_model import get_model, FireDetectionModel
+    YOLO_AVAILABLE = True
+except ImportError:
+    YOLO_AVAILABLE = False
+    print("⚠️ YOLO 모듈 로드 실패 - Mock 모드로 실행")
 
 # 환경변수 로드
 load_dotenv()
@@ -44,6 +52,17 @@ if api_key:
         print(f"⚠️ OpenAI 초기화 오류: {e}")
 else:
     print("⚠️ OPENAI_API_KEY 환경변수가 설정되지 않음")
+
+# YOLO 모델 초기화
+yolo_model = None
+try:
+    if YOLO_AVAILABLE:
+        yolo_model = get_model()
+        print("✅ YOLO 모델 초기화 완료")
+    else:
+        print("⚠️ YOLO 모듈 없음 - Mock 모드로 실행")
+except Exception as e:
+    print(f"⚠️ YOLO 모델 초기화 오류: {e}")
 
 # 정적 파일 마운트
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -78,48 +97,97 @@ async def analyze_image(
     radius: Optional[float] = Form(None)
 ):
     """
-    이미지 분석 API (Mock - YOLO 연동 전)
+    이미지 분석 API - YOLOv8 + Mock 하이브리드
+    Fire/Smoke는 YOLO, 기타 장비는 Mock 데이터
     """
     try:
         contents = await file.read()
         
-        # TODO: 실제 YOLO 모델 연동 시 아래 코드 활성화
-        # from ultralytics import YOLO
-        # model = YOLO("yolov8-fire.pt")
-        # results = model(contents)
+        # YOLO 모델로 객체 감지
+        detected_objects = []
+        hazard_analysis = {}
         
-        # 현재는 Mock 데이터 반환
+        if yolo_model:
+            # YOLO 추론
+            detections = yolo_model.detect(contents, conf_threshold=0.4)
+            
+            # 감지 결과 변환
+            for det in detections:
+                obj = {
+                    "id": det["id"],
+                    "type": det["class_ko"],
+                    "type_en": det["class"],
+                    "category": det["type"],
+                    "shape": "감지된 객체",
+                    "material": det["material"],
+                    "purpose": det["purpose"],
+                    "risk": det["risk"],
+                    "confidence": det["confidence"],
+                    "bbox": det["bbox"]
+                }
+                detected_objects.append(obj)
+            
+            # 화재 위험 분석
+            hazard_analysis = yolo_model.analyze_fire_hazard(detections)
+        
+        # YOLO로 감지되지 않았으면 Mock 데이터 추가 (데모용)
+        if len(detected_objects) == 0:
+            detected_objects = [
+                {
+                    "id": 0,
+                    "type": "전열기",
+                    "type_en": "heater",
+                    "category": "electrical",
+                    "shape": "원통형 가열 장치",
+                    "material": "금속 + 세라믹",
+                    "purpose": "액체 가열용",
+                    "risk": "과열",
+                    "confidence": 0.92,
+                    "source": "mock"
+                },
+                {
+                    "id": 1,
+                    "type": "전원 케이블",
+                    "type_en": "cable",
+                    "category": "electrical",
+                    "shape": "코일 형태",
+                    "material": "구리 + PVC 절연체",
+                    "purpose": "전력 공급",
+                    "risk": "단선",
+                    "confidence": 0.88,
+                    "source": "mock"
+                },
+                {
+                    "id": 2,
+                    "type": "연소 흔적",
+                    "type_en": "burn_mark",
+                    "category": "evidence",
+                    "shape": "불규칙한 탄화 패턴",
+                    "material": "탄화 물질",
+                    "purpose": "화재 확산 증거",
+                    "risk": "재발화",
+                    "confidence": 0.95,
+                    "source": "mock"
+                }
+            ]
+            hazard_analysis = {
+                "hazard_level": "high",
+                "risk_score": 85,
+                "findings": ["전기적 화재 위험 감지"]
+            }
+        
         result = {
             "status": "success",
+            "model": "yolov8n-fire" if yolo_model and not yolo_model.use_mock else "mock",
             "filename": file.filename,
             "selected_area": {
                 "center_x": center_x,
                 "center_y": center_y,
                 "radius": radius
             } if center_x else None,
-            "objects": [
-                {
-                    "type": "전열기",
-                    "shape": "원통형 가열 장치",
-                    "material": "금속 + 세라믹",
-                    "purpose": "액체 가열용",
-                    "confidence": 0.92
-                },
-                {
-                    "type": "전원 케이블",
-                    "shape": "코일 형태",
-                    "material": "구리 + PVC 절연체",
-                    "purpose": "전력 공급",
-                    "confidence": 0.88
-                },
-                {
-                    "type": "연소 흔적",
-                    "shape": "불규칙한 탄화 패턴",
-                    "material": "탄화 물질",
-                    "purpose": "화재 확산 증거",
-                    "confidence": 0.95
-                }
-            ]
+            "objects": detected_objects,
+            "hazard_analysis": hazard_analysis,
+            "timestamp": datetime.now().isoformat()
         }
         
         return JSONResponse(content=result)
