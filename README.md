@@ -38,12 +38,27 @@
 
 ## 📸 스크린샷
 
-### 메인 화면
+### 1. 메인 화면
 <p align="center">
   <img src="docs/screenshots/screenshot_main.png" alt="메인 화면" width="800">
 </p>
 
-### 분석 결과 화면
+### 2. 이미지 업로드 후
+<p align="center">
+  <img src="docs/screenshots/screenshot_uploaded.png" alt="이미지 업로드" width="800">
+</p>
+
+### 3. 증거 식별 결과
+<p align="center">
+  <img src="docs/screenshots/screenshot_analysis.png" alt="증거 식별 결과" width="800">
+</p>
+
+### 4. AI 화재 원인 분석 (GPT-4)
+<p align="center">
+  <img src="docs/screenshots/screenshot_ai_analysis.png" alt="AI 원인 분석" width="800">
+</p>
+
+### 분석 결과 예시
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  📊 분석 결과                                                │
