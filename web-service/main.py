@@ -19,9 +19,10 @@ from openai import OpenAI
 try:
     from yolo_model import get_model, FireDetectionModel
     YOLO_AVAILABLE = True
-except ImportError:
+    print("✅ YOLO 모듈 로드 성공")
+except ImportError as e:
     YOLO_AVAILABLE = False
-    print("⚠️ YOLO 모듈 로드 실패 - Mock 모드로 실행")
+    print(f"⚠️ YOLO 모듈 로드 실패: {e}")
 
 # 환경변수 로드
 load_dotenv()
@@ -129,6 +130,10 @@ async def analyze_image(
             
             # 화재 위험 분석
             hazard_analysis = yolo_model.analyze_fire_hazard(detections)
+        
+        # 감지된 객체에 source 표시
+        for obj in detected_objects:
+            obj["source"] = "yolo"
         
         # YOLO로 감지되지 않았으면 Mock 데이터 추가 (데모용)
         if len(detected_objects) == 0:

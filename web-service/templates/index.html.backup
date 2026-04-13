@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔥 소방 AI 화재조사 시스템</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="header">
+        <h1>🔥 소방 AI 화재조사 시스템</h1>
+        <p>Circle-to-Search 증거 식별 + ChatGPT 원인 분석</p>
+    </div>
+    
+    <div class="container">
+        <!-- 단계 표시 -->
+        <div class="steps">
+            <div class="step active" data-step="1">
+                <div class="step-number">1</div>
+                <div class="step-title">사진 업로드</div>
+            </div>
+            <div class="step-arrow">→</div>
+            <div class="step" data-step="2">
+                <div class="step-number">2</div>
+                <div class="step-title">영역 선택</div>
+            </div>
+            <div class="step-arrow">→</div>
+            <div class="step" data-step="3">
+                <div class="step-number">3</div>
+                <div class="step-title">증거 식별</div>
+            </div>
+            <div class="step-arrow">→</div>
+            <div class="step" data-step="4">
+                <div class="step-number">4</div>
+                <div class="step-title">AI 원인 분석</div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <!-- 왼쪽: 이미지 및 캔버스 -->
+            <div class="left-panel">
+                <div class="panel-title">📸 화재 현장 사진</div>
+                
+                <!-- 업로드 전 -->
+                <div id="uploadZone" class="upload-zone">
+                    <div class="upload-icon">📁</div>
+                    <div class="upload-text">화재 현장 사진을 업로드하세요</div>
+                    <div class="upload-hint">클릭 또는 드래그하여 파일 선택</div>
+                    <input type="file" id="fileInput" accept="image/*" hidden>
+                </div>
+                
+                <!-- 업로드 후 -->
+                <div id="imageZone" class="image-zone" style="display: none;">
+                    <div class="canvas-wrapper">
+                        <img id="sourceImage" alt="화재 현장">
+                        <canvas id="drawCanvas"></canvas>
+                    </div>
+                    <div class="canvas-hint">🖱️ 마우스로 관심 영역을 드래그하여 선택하세요</div>
+                </div>
+                
+                <!-- 버튼 영역 -->
+                <div id="actionButtons" class="action-buttons" style="display: none;">
+                    <button id="resetBtn" class="btn btn-secondary">🔄 다시 선택</button>
+                    <button id="analyzeBtn" class="btn btn-primary">🔍 증거 식별 분석</button>
+                </div>
+            </div>
+            
+            <!-- 오른쪽: 분석 결과 -->
+            <div class="right-panel">
+                <div class="panel-title">📊 분석 결과</div>
+                
+                <!-- 초기 상태 -->
+                <div id="initialState" class="initial-state">
+                    <div class="state-icon">🔍</div>
+                    <div class="state-text">왼쪽에서 사진을 업로드하고<br>분석을 시작하세요</div>
+                </div>
+                
+                <!-- 로딩 -->
+                <div id="loadingState" class="loading-state" style="display: none;">
+                    <div class="spinner"></div>
+                    <div class="loading-text">AI가 분석 중입니다...</div>
+                </div>
+                
+                <!-- 증거 식별 결과 -->
+                <div id="evidenceResult" class="result-box" style="display: none;">
+                    <div class="result-header">
+                        <span class="result-icon">📋</span>
+                        <span class="result-title">증거물 식별 결과</span>
+                    </div>
+                    <div id="evidenceList" class="evidence-list"></div>
+                </div>
+                
+                <!-- AI 분석 결과 -->
+                <div id="analysisResult" class="result-box" style="display: none;">
+                    <div class="result-header">
+                        <span class="result-icon">🔥</span>
+                        <span class="result-title">AI 화재 원인 분석</span>
+                    </div>
+                    <div id="analysisContent" class="analysis-content"></div>
+                </div>
+                
+                <!-- 보고서 -->
+                <div id="reportSection" class="report-section" style="display: none;">
+                    <button id="reportBtn" class="btn btn-report">📝 조사보고서 생성</button>
+                    <div id="reportResult" class="report-content" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer-note">
+            🔥 본 시스템은 AI 기반 분석 결과를 제공하며, 최종 판단은 담당 조사관이 수행해야 합니다.
+        </div>
+    </div>
+    
+    <script src="/static/app.js"></script>
+</body>
+</html>
